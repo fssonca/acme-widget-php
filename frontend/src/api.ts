@@ -5,7 +5,6 @@ export interface Product {
 }
 
 export interface Catalogue {
-  currency: 'USD'
   products: Product[]
   offerDescription: string
 }
@@ -16,37 +15,31 @@ export interface BasketItem {
 }
 
 export interface Quote {
-  currency: 'USD'
-  items: (Product & BasketItem & { lineSubtotalCents: number })[]
+  items: (BasketItem & { lineSubtotalCents: number })[]
   subtotalCents: number
   discountCents: number
-  discountedSubtotalCents: number
   deliveryCents: number
   totalCents: number
 }
 
-async function request<T>(path: string, options: RequestInit): Promise<T> {
+async function request<T>(path: string, init: RequestInit): Promise<T> {
   const response = await fetch(path, {
-    ...options,
-    headers: { Accept: 'application/json', ...options.headers },
+    ...init,
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
   })
-
-  if (!response.ok) {
-    throw new Error('We could not load the latest prices. Please try again.')
-  }
-
+  if (!response.ok) throw new Error(`${path} responded ${response.status}`)
   return response.json() as Promise<T>
 }
 
 export const getCatalogue = (signal: AbortSignal) =>
   request<Catalogue>('/api/catalogue', { signal })
 
+// Prices are never calculated in the browser: the API quotes every basket change.
 export const getQuote = (items: BasketItem[], signal: AbortSignal) =>
   request<Quote>('/api/basket/quote', {
     method: 'POST',
-    signal,
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ items }),
+    signal,
   })
 
 export const formatMoney = (cents: number) =>

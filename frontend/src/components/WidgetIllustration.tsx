@@ -1,11 +1,9 @@
 import { useId } from 'react'
+import { accentFor } from '../accents'
 
 export function WidgetIllustration({ code }: { code: string }) {
   const id = useId()
-  const color =
-    code === 'R01' ? '#c44a3d' : code === 'G01' ? '#50846c' : '#5185bb'
-  const dark =
-    code === 'R01' ? '#833023' : code === 'G01' ? '#2c5445' : '#2c527e'
+  const { base: color, dark } = accentFor(code)
 
   return (
     <svg viewBox="0 0 260 210" fill="none" aria-hidden="true">
