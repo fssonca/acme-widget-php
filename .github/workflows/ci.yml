@@ -19,6 +19,6 @@ jobs:
       - name: App answers a quote
         run: |
           docker compose up --build --detach app
-          curl --retry 10 --retry-connrefused --fail --silent \
+          curl --retry 10 --retry-all-errors --retry-delay 1 --fail --silent --show-error \
             -H 'Content-Type: application/json' -d '{"items":[{"code":"R01","quantity":2}]}' \
             http://localhost:8080/api/basket/quote | grep '"totalCents":5437'
