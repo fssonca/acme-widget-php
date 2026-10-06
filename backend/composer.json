@@ -1,26 +1,15 @@
 {
-    "$schema": "https://getcomposer.org/schema.json",
     "name": "acme/widget-basket",
     "type": "project",
-    "description": "Acme Widget Co basket quotation exercise.",
-    "keywords": [
-        "laravel",
-        "framework"
-    ],
+    "description": "Acme Widget Co basket: framework-free pricing domain behind a small Laravel API.",
     "license": "MIT",
     "require": {
-        "php": "^8.3",
-        "laravel/framework": "^13.17",
-        "laravel/tinker": "^3.0"
+        "php": "^8.4",
+        "laravel/framework": "^13.17"
     },
     "require-dev": {
-        "fakerphp/faker": "^1.23",
         "larastan/larastan": "^3.12",
-        "laravel/pail": "^1.2.5",
-        "laravel/pao": "^1.0.6",
         "laravel/pint": "^1.27",
-        "mockery/mockery": "^1.6",
-        "nunomaduro/collision": "^8.6",
         "phpunit/phpunit": "^12.5.12"
     },
     "autoload": {
@@ -34,16 +23,14 @@
         }
     },
     "scripts": {
-        "test": [
-            "@php artisan config:clear --ansi @no_additional_args",
-            "@php artisan test"
+        "test": "phpunit",
+        "lint": [
+            "pint --test",
+            "phpstan analyse"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
-        ],
-        "pre-package-uninstall": [
-            "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
         ]
     },
     "extra": {
@@ -54,11 +41,7 @@
     "config": {
         "optimize-autoloader": true,
         "preferred-install": "dist",
-        "sort-packages": true,
-        "allow-plugins": {
-            "pestphp/pest-plugin": true,
-            "php-http/discovery": true
-        }
+        "sort-packages": true
     },
     "minimum-stability": "stable",
     "prefer-stable": true
