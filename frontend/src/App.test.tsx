@@ -54,6 +54,7 @@ describe('App', () => {
 
     expect(await screen.findByText('$54.37')).toBeTruthy()
     expect(screen.getByText('−$16.48')).toBeTruthy()
+    expect(screen.getByRole('status').textContent).toBe('Total $54.37')
     expect(fetch).toHaveBeenLastCalledWith(
       '/api/basket/quote',
       expect.objectContaining({

@@ -45,6 +45,14 @@ export function BasketSummary({ quote, loading, failed, onRetry }: Props) {
           </button>
         </div>
       )}
+      {/* Announces each new total to screen readers. */}
+      <p className="visually-hidden" role="status">
+        {loading
+          ? 'Updating your total…'
+          : quote && !failed
+            ? `Total ${formatMoney(quote.totalCents)}`
+            : ''}
+      </p>
       <p className="footnote">
         Delivery is based on your subtotal after savings.
       </p>
