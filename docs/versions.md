@@ -12,6 +12,22 @@ All three published manifests include both `linux/arm64` and `linux/amd64`. Exec
 
 The PHP base already includes Laravel's required extensions and PHPUnit's DOM/XML/mbstring extensions; `unzip` is installed for Composer package extraction. Both runtime and tools check actual platform requirements with Composer, without suppressing them. Node and all npm dependencies stay out of the final PHP/Apache application image.
 
-Composer and npm lockfiles are committed. Exact framework/tool versions and executed checks are recorded in the Phase 2 review after verification.
+Composer and npm lockfiles are committed. Locked versions verified during the containerized checks:
+
+| Package | Version |
+| --- | --- |
+| Laravel framework | 13.35.0 |
+| PHPUnit | 12.5.38 |
+| Laravel Pint | 1.32.1 |
+| PHPStan / Larastan | 2.3.0 / 3.12.3 |
+| Laravel Boost (upstream agent setup, development only) | 2.10.2 |
+| React / React DOM | 19.3.0 |
+| TypeScript | 6.0.3 |
+| Vite | 8.3.3 |
+| Oxlint | 1.87.0 |
+
+The tools image creates an empty `.env` automatically to avoid Collision reporting Dotenv's suppressed missing-file warning. It supplies no settings or key, does not cache configuration before tests, and is separate from the runtime image, which has no `.env`. All actual settings come from environment variables; PHPUnit can override them for tests.
+
+Executed checks are recorded in the [Phase 2 review](phase-2-review.md).
 
 Compatibility references: [Laravel 13 releases](https://laravel.com/docs/13.x/releases), [Laravel server requirements](https://laravel.com/docs/13.x/deployment), [PHPUnit supported versions](https://phpunit.de/supported-versions.html), [Vite requirements](https://vite.dev/guide/), [Larastan](https://github.com/larastan/larastan).

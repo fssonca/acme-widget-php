@@ -1,4 +1,9 @@
 .git
+**/.git
+**/auth.json
+**/.npmrc
+**/.codex
+**/.cursor
 **/.DS_Store
 **/.env
 **/.env.*

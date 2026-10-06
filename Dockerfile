@@ -28,7 +28,9 @@ FROM php-base AS backend-tools
 COPY backend/composer.json backend/composer.lock ./
 RUN composer install --prefer-dist --no-interaction --no-progress --no-scripts --no-autoloader
 COPY backend/ ./
-RUN composer dump-autoload --optimize --no-interaction \
+# Tools only: an empty env file avoids Collision reporting Dotenv's suppressed missing-file warning.
+RUN touch .env \
+    && composer dump-autoload --optimize --no-interaction \
     && composer check-platform-reqs
 CMD ["php", "artisan", "test"]
 
