@@ -9,8 +9,11 @@ use LogicException;
 
 final readonly class ThresholdDeliveryPolicy implements DeliveryPolicy
 {
-    /** @param array<int, array{upperBoundCents: int|null, chargeCents: int}> $bands */
-    public function __construct(private array $bands)
+    /** @var list<array{upperBoundCents: int|null, chargeCents: int}> */
+    private array $bands;
+
+    /** @param array<int, mixed> $bands Expected shape: list<array{upperBoundCents: int|null, chargeCents: int}>. */
+    public function __construct(array $bands)
     {
         if ($bands === [] || ! array_is_list($bands)) {
             throw new InvalidArgumentException('Delivery bands must be a nonempty list.');
@@ -18,13 +21,23 @@ final readonly class ThresholdDeliveryPolicy implements DeliveryPolicy
 
         $previousBound = 0;
         $lastIndex = array_key_last($bands);
+        $validatedBands = [];
 
         foreach ($bands as $index => $band) {
+            if (! is_array($band)
+                || ! array_key_exists('upperBoundCents', $band)
+                || ! isset($band['chargeCents'])
+                || ! is_int($band['chargeCents'])
+                || ($band['upperBoundCents'] !== null && ! is_int($band['upperBoundCents']))) {
+                throw new InvalidArgumentException('Delivery bands require an integer charge and an integer or null upper bound.');
+            }
+
             if ($band['chargeCents'] < 0) {
                 throw new InvalidArgumentException('Delivery charges cannot be negative.');
             }
 
             $upperBound = $band['upperBoundCents'];
+            $validatedBands[] = ['upperBoundCents' => $upperBound, 'chargeCents' => $band['chargeCents']];
 
             if ($upperBound === null) {
                 if ($index !== $lastIndex) {
@@ -41,9 +54,11 @@ final readonly class ThresholdDeliveryPolicy implements DeliveryPolicy
             $previousBound = $upperBound;
         }
 
-        if ($bands[$lastIndex]['upperBoundCents'] !== null) {
+        if ($validatedBands[$lastIndex]['upperBoundCents'] !== null) {
             throw new InvalidArgumentException('The last delivery band must be unbounded.');
         }
+
+        $this->bands = $validatedBands;
     }
 
     public function chargeFor(Money $discountedSubtotal): Money

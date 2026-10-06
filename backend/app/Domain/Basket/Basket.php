@@ -23,10 +23,6 @@ final class Basket
         $this->catalogue->get($productCode);
         $quantity = $this->quantities[$productCode] ?? 0;
 
-        if ($quantity === PHP_INT_MAX) {
-            throw new InvalidArgumentException('Basket quantity exceeds the integer range.');
-        }
-
         $this->quantities[$productCode] = $quantity + 1;
     }
 

@@ -15,16 +15,18 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends unzip \
     && rm -rf /var/lib/apt/lists/* \
     && a2enmod rewrite
-COPY --from=composer-bin /usr/bin/composer /usr/local/bin/composer
 COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
 COPY docker/entrypoint.sh /usr/local/bin/acme-entrypoint
 COPY docker/healthcheck.php /usr/local/bin/healthcheck.php
 RUN chmod 755 /usr/local/bin/acme-entrypoint
 WORKDIR /var/www/html
-ENV COMPOSER_ALLOW_SUPERUSER=1
 ENTRYPOINT ["acme-entrypoint"]
 
-FROM php-base AS backend-tools
+FROM php-base AS php-tools
+COPY --from=composer-bin /usr/bin/composer /usr/local/bin/composer
+ENV COMPOSER_ALLOW_SUPERUSER=1
+
+FROM php-tools AS backend-tools
 COPY backend/composer.json backend/composer.lock ./
 RUN composer install --prefer-dist --no-interaction --no-progress --no-scripts --no-autoloader
 COPY backend/ ./
@@ -34,7 +36,7 @@ RUN touch .env \
     && composer check-platform-reqs
 CMD ["php", "artisan", "test"]
 
-FROM php-base AS backend-runtime
+FROM php-tools AS backend-runtime
 COPY backend/composer.json backend/composer.lock ./
 RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --no-scripts --no-autoloader
 COPY backend/ ./

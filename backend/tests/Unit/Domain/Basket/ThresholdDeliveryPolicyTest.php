@@ -47,7 +47,7 @@ final class ThresholdDeliveryPolicyTest extends TestCase
         $this->assertSame(123, $policy->chargeFor(new Money(50000))->cents);
     }
 
-    /** @param array<int, array{upperBoundCents: int|null, chargeCents: int}> $bands */
+    /** @param array<int, mixed> $bands */
     #[DataProvider('invalidBands')]
     public function test_rejects_invalid_delivery_configuration(array $bands): void
     {
@@ -56,11 +56,21 @@ final class ThresholdDeliveryPolicyTest extends TestCase
         new ThresholdDeliveryPolicy($bands);
     }
 
-    /** @return array<string, array{array<int, array{upperBoundCents: int|null, chargeCents: int}>}> */
+    /** @return array<string, array{array<int, mixed>}> */
     public static function invalidBands(): array
     {
         return [
             'no bands' => [[]],
+            'non-array band' => [[495]],
+            'missing charge' => [[['upperBoundCents' => null]]],
+            'missing bound' => [[['chargeCents' => 495]]],
+            'string charge' => [[['upperBoundCents' => null, 'chargeCents' => '495']]],
+            'null charge' => [[['upperBoundCents' => null, 'chargeCents' => null]]],
+            'float charge' => [[['upperBoundCents' => null, 'chargeCents' => 495.0]]],
+            'boolean charge' => [[['upperBoundCents' => null, 'chargeCents' => true]]],
+            'string bound' => [[['upperBoundCents' => '5000', 'chargeCents' => 495]]],
+            'float bound' => [[['upperBoundCents' => 5000.0, 'chargeCents' => 495]]],
+            'boolean bound' => [[['upperBoundCents' => true, 'chargeCents' => 495]]],
             'no final unbounded band' => [[['upperBoundCents' => 5000, 'chargeCents' => 495]]],
             'decreasing bounds' => [[
                 ['upperBoundCents' => 9000, 'chargeCents' => 495],

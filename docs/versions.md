@@ -20,7 +20,6 @@ Composer and npm lockfiles are committed. Locked versions verified during the co
 | PHPUnit | 12.5.38 |
 | Laravel Pint | 1.32.1 |
 | PHPStan / Larastan | 2.3.0 / 3.12.3 |
-| Laravel Boost (upstream agent setup, development only) | 2.10.2 |
 | React / React DOM | 19.3.0 |
 | TypeScript | 6.0.3 |
 | Vite | 8.3.3 |

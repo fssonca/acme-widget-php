@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use Tests\TestCase;
 
-class ExampleTest extends TestCase
+class ScaffoldTest extends TestCase
 {
     public function test_root_redirects_to_the_built_interface(): void
     {
