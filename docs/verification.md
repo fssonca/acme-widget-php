@@ -1,19 +1,8 @@
-# Final verification
+# Verification
 
-Phases 1–2 were reviewed and approved by the candidate on 2026-10-06. Phases 3–5 implement the approved domain/rounding policy through Laravel and React. Nothing is published or submitted.
+Checks were executed on 2026-10-06 using the project tool images. The native ARM64 baseline is `be22545`. Frontend and browser checks were repeated after the accessible quantity/subtotal labels were updated; the same PHP and frontend gates also passed on AMD64 under emulation, as detailed below.
 
-## Review cleanups
-
-- Removed the committed Boost agent instructions/configuration and `laravel/boost` dev dependency, including its unused transitive packages. AI assistance remains truthfully disclosed in the README.
-- Removed unused Vite template images/icons and replaced its favicon with the app mark, served at `/app/favicon.svg`.
-- Renamed `ExampleTest` to `ScaffoldTest`.
-- Removed the impractical basket quantity-overflow guard; Money arithmetic retains its actual overflow checks, and HTTP limits quotations to 1000 units.
-- Delivery-band validation now rejects missing keys, non-array bands, and non-integer values with `InvalidArgumentException`. The domain still contains the same ten types.
-- Composer and its build-only environment flag are absent from the final application image.
-
-## Executed checks
-
-Checks run on 2026-10-06 using Docker Desktop linux/arm64 on Apple Silicon:
+## Application checks
 
 | Check | Result |
 | --- | --- |
@@ -24,34 +13,55 @@ Checks run on 2026-10-06 using Docker Desktop linux/arm64 on Apple Silicon:
 | Composer manifest | `composer validate --strict` passed; locked dependencies installed and platform checked in Docker |
 | Frontend | Strict TypeScript, lint with zero warnings/errors, production build passed |
 | HTTP smoke through Apache | Root redirect, index, JS/CSS MIME types, favicon, health, catalogue, four totals, empty basket, duplicate rows, limits, malformed JSON and 422 errors passed |
-| Runtime contents | No `.env`, Composer, build-only Composer environment flag, Node, PHPUnit, or Boost; config cached at startup; Apache worker can write storage and bootstrap/cache |
-| Clean checkout | Detached Git worktree at `277baec`, no host `.env`, `vendor`, `node_modules`, or compiled assets; exact `docker compose up --build --wait` passed with only app running |
+| Runtime contents | No `.env`, Composer, build-only Composer environment flag, Node, PHPUnit, or Boost; configuration cached at startup; Apache worker can write storage and bootstrap/cache |
+| Clean checkout | No host `.env`, `vendor`, `node_modules`, or compiled assets; `docker compose up --build --wait` passed with only the app service running |
 | Stop/start | `docker compose down`, then the same build/start command and HTTP smoke passed again |
-| Failed readiness | Removed the compiled index in a temporary container override; Compose launch failed as unhealthy, while `/up` still returned 200 and the health-check process returned failure; normal app restored afterward |
-| CI rehearsal | All application check/start/smoke commands passed locally; workflow YAML parsed successfully |
-| Browser acceptance | $37.85, $54.37, $60.85, $98.27 reproduced with Add buttons |
-| Browser controls | Increment, decrement, last-unit removal, and keyboard Add passed |
-| Network failures | Catalogue retry and quote retry recovered; a failed quote hid previous amounts |
-| Response ordering | Delayed old successes and old errors arrived after a newer successful quote and did not overwrite it; updating amounts were hidden |
+| Failed readiness | Removing the compiled index made Compose launch fail as unhealthy, while `/up` still returned 200; normal application restored afterward |
+| CI commands | Check/start/smoke commands passed locally; workflow YAML parsed successfully |
+
+See the [README](../README.md#checks) for the commands and [HTTP smoke script](../frontend/scripts/smoke.mjs) for the integration checks. A clean checkout verifies that the project requires no host application dependencies or generated assets; it does not establish a build with empty image/dependency caches.
+
+## Browser checks
+
+The built application was exercised with Playwright, Google Chrome, and axe:
+
+| Check | Result |
+| --- | --- |
+| Acceptance baskets | $37.85, $54.37, $60.85, and $98.27 reproduced with Add buttons |
+| Quantity controls | Increment, decrement, last-unit removal, and keyboard Add passed |
+| Accessible labels | Product-specific quantity and gross-subtotal text is present in the browser accessibility tree |
+| Network failures | Catalogue and quote retries recovered; a failed quote hid previous amounts |
+| Response ordering | Delayed old successes and errors arrived after a newer successful quote and did not overwrite it; updating amounts were hidden |
 | Responsive/accessibility | 1440 px desktop and 390 px mobile; no mobile overflow or uncaught JavaScript errors; axe WCAG 2 A/AA and 2.1 AA scans found no violations in the tested filled-basket states |
-| Screenshot | Actual running app, two reds totaling $54.37, saved as `docs/screenshot.png` |
+| Screenshot | Actual application with two reds totaling $54.37, saved as `docs/screenshot.png` |
 
-The browser checks used Playwright with installed Google Chrome and axe from a temporary verification directory. They did not add application dependencies. The screenshot is the implemented UI, not an image-generation mockup. Automated scans cover the tested states and do not replace a full accessibility audit.
+These browser tools are verification dependencies, separate from the application. Automated accessibility scans cover the tested states and do not replace a full accessibility audit.
 
-All required checks above were executed against committed source. The clean worktree remains free of host dependencies/generated assets after the checks because tool commands operate inside their images. The workflow has not run on GitHub because the repository has no remote and publication remains a separate authorized step.
+## Build portability and CI
 
-## Limits and environment
+Official image manifests include linux/arm64 and linux/amd64. Native execution has been tested on ARM64. An AMD64 build and execution were also verified under Docker Desktop emulation on ARM64.
 
-Official image manifests support linux/arm64 and linux/amd64; execution was tested only on ARM64. AMD64 execution and hosted GitHub Actions are untested.
+A new, isolated `docker-container` BuildKit builder was used with no imported cache. Its first application build used `--platform linux/amd64 --pull --no-cache --load`: it fetched the pinned base-image layers, installed locked Composer/npm dependencies, and compiled the interface. This establishes a cold build for that builder without deleting shared Docker caches. The tools targets were then built in the same builder, reusing the base layers fetched during the application build.
 
-The host's default Docker Desktop credential helper stalled during the earlier scaffold work. Registry/build operations used a temporary `DOCKER_CONFIG` and the existing Docker socket, leaving the user's Docker settings untouched. Later builds reused cached base images. This does not prove that default-config registry pulls now work, nor represent a cold registry-cache build. The application startup command remains exactly `docker compose up --build --wait`.
+| AMD64 check under emulation | Result |
+| --- | --- |
+| Cold application build | Passed in an isolated builder with no existing image/build/dependency cache |
+| Runtime startup | Healthy; PHP reports `x86_64`, version 8.4.26 |
+| Complete and pure-domain PHP suites | 152 tests / 365 assertions; 101 tests / 170 assertions |
+| Pint, PHPStan level 8, Composer validation | Passed |
+| TypeScript, lint, production build | Passed; zero lint warnings/errors |
+| HTTP smoke | Assets, catalogue, all four totals, limits, and error contracts passed |
+| Browser accessibility tree | Quantity and gross-subtotal labels present |
 
-The recruiter AI-use policy remains unknown. The candidate reviewed the domain checkpoint; final API/UI review and applicable policy/disclosure decisions remain for the candidate before submission. Existing Git identity and the no-optional-coauthor attribution choice were preserved.
+The application image build can be reproduced with an isolated builder:
 
-## Interview walkthrough
+```sh
+docker buildx create --name acme-cold --driver docker-container --bootstrap
+docker buildx build --builder acme-cold --platform linux/amd64 \
+  --pull --no-cache --load --target app --tag acme-widget:amd64 .
+docker buildx rm acme-cold
+```
 
-1. Quantities are the only mutable state. Calculations copy them into immutable product/quantity lines, so order and repeated quotations do not affect eligibility.
-2. Money is integer cents. Each eligible second red costs `intdiv(3295, 2) = 1647`; each pair saves 1648. Two reds are 4942 merchandise + 495 delivery = 5437. Six reds are 19770 − 4944 = 14826, with free delivery.
-3. Offers run before delivery. `BasketTotals` derives net and final total, preserving both accounting identities.
-4. Constructor injection replaces products, delivery, or offers without framework coupling. Laravel builds those dependencies from cacheable configuration; `QuoteBasket` creates one basket per call.
-5. HTTP validates containers, catalogue codes, strict integers, and aggregate unit limits. React displays the returned quote and prevents stale responses from being presented as current. No database is needed for a stateless calculation.
+Native AMD64 execution and hosted GitHub Actions remain unverified. Emulation verifies the AMD64 image/toolchain but does not establish a successful run on a hosted native AMD64 runner.
+
+The [workflow](../.github/workflows/ci.yml) builds the tool images, runs the checks, starts the application, verifies HTTP, and cleans up containers even after failure. A local command rehearsal is separate from an actual hosted workflow run.

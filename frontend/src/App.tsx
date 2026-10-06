@@ -279,7 +279,10 @@ function App() {
                               >
                                 <Icon name="minus" />
                               </button>
-                              <span aria-label={`${product.name} quantity`}>
+                              <span>
+                                <span className="visually-hidden">
+                                  {product.name} quantity:{' '}
+                                </span>
                                 {item.quantity}
                               </span>
                               <button
@@ -301,10 +304,10 @@ function App() {
                             </button>
                           </div>
                         </div>
-                        <span
-                          className="line-subtotal"
-                          aria-label={`${product.name} gross subtotal`}
-                        >
+                        <span className="line-subtotal">
+                          <span className="visually-hidden">
+                            {product.name} gross subtotal:{' '}
+                          </span>
                           {amount(
                             current?.items.find(
                               (line) => line.code === item.code,

@@ -1,8 +1,8 @@
-# Phase 2 model review
+# Basket design
 
-The candidate reviewed and approved Phases 1–2 and the model/rounding policy on 2026-10-06. This document preserves the original checkpoint and its verification results; statements about pending implementation below describe that checkpoint. Phases 3–5 are now implemented. See [final verification](verification.md) for current results and review cleanups.
+The basket domain models quantities, product snapshots, offers, and delivery independently of Laravel. All money uses integer USD cents.
 
-## Start with the domain
+## Domain responsibilities
 
 All domain code lives under [`backend/app/Domain/Basket`](../backend/app/Domain/Basket). It uses strict types and contains no Laravel or database dependencies.
 
@@ -52,7 +52,7 @@ echo $basket->total(); // "54.37"
 $totals = $basket->breakdown(); // Immutable Money amounts and gross lines.
 ```
 
-`total(): string` is an interface choice: the challenge does not prescribe its return type. The string always contains two decimal places and never passes through a float. The catalogue and stateless policies can later be shared in Laravel's container; a mutable basket must be created for each request and never bound as a singleton.
+`total(): string` is an interface choice: the challenge does not prescribe its return type. The string always contains two decimal places and never passes through a float. Laravel shares the immutable catalogue and stateless quotation service. The service creates a fresh mutable basket for each quotation; baskets are never bound as singletons.
 
 ## Two-red and six-red walkthrough
 
@@ -70,7 +70,7 @@ Half of 3295 cents contains a fractional cent. The chosen policy prices each eli
 
 Delivery follows offers. In the two-red case, using gross merchandise for delivery would produce $52.37, whereas the challenge requires $54.37. The discounted subtotal therefore determines the delivery band.
 
-## Rounding alternatives to review
+## Rounding alternatives
 
 All three policies reproduce every supplied example. They diverge beyond one discounted unit:
 
@@ -84,45 +84,24 @@ The selected rule makes the same discounted unit price repeat consistently. It i
 
 Whole-cent unit prices explain the receipt. They do not define how returns are allocated or whether a promotion is recalculated after a refund.
 
-## Assumptions and candidate decisions
+## Assumptions and boundaries
 
 - Repeating red pairs, one unmatched red at full price, per-unit rounding down, and an all-zero empty basket are assumptions.
 - Codes are case-sensitive; an invalid addition leaves quantities unchanged. Prices stay fixed for the basket lifetime.
 - USD only, no taxes, and basket quotation only. Returns, refunds, persistence, checkout, payment, inventory, and accounts are out of scope.
 - Independent offer discounts are summed and may not exceed gross merchandise. Overlap priorities and best-offer selection are not specified.
 - For a nonempty basket with zero net merchandise, the injected policy still applies; the configured threshold policy charges $4.95. Only an empty basket bypasses delivery.
-- Phase 3 will merge duplicate API rows, enforce a 1000-unit request limit, validate strict integers and JSON containers, and isolate requests. Those HTTP behaviors are not implemented yet.
+- The API merges duplicate product rows before quotation. It validates catalogue membership, strict integer quantities, JSON containers, and a total limit of 1000 units. Requests do not share basket contents.
 
-No recruiter's AI-use policy was supplied. The candidate must confirm any applicable assessment policy before submission. Implementation used AI assistance; no claim of unaided authorship or candidate review is made. Local commits use the pre-existing Git identity, without optional AI co-author trailers. This attribution behavior and any disclosure wording remain for candidate review.
 
-## Verification
+## Framework integration
 
-Executed in containers on linux/arm64 on 2026-10-06:
+[`config/basket.php`](../backend/config/basket.php) contains primitive product prices, delivery bands, and the offer target/description. [`BasketServiceProvider`](../backend/app/Providers/BasketServiceProvider.php) constructs immutable products and stateless policies, so Laravel configuration remains cacheable.
 
-| Check | Result |
-| --- | --- |
-| Pure domain PHPUnit suite | **91 passed, 160 assertions**; no Laravel boot |
-| Complete `php artisan test` | **93 passed, 163 assertions**, no warnings |
-| `vendor/bin/pint --test` | Passed, 36 PHP files |
-| `vendor/bin/phpstan analyse` | Level 8, 12 application files, no errors or baseline |
-| `composer validate --strict` | Passed |
-| npm `typecheck` | Passed |
-| npm `lint` | Passed, no warnings or errors |
-| npm `build` | Passed; assets compiled under `/app/` |
-| `docker compose config --quiet` | Passed |
-| Initial `docker compose up --build --wait` | Passed; built HTML and `/up` both HTTP 200; only app started |
-| Same startup from a clean Git worktree | Passed, with no host `.env`, `vendor`, `node_modules`, or built assets |
-| Published root, JavaScript, CSS, and `/up` | HTTP 200; root redirects to `/app/index.html`; assets use `/app/assets/` |
-| Runtime dependency/permission checks | No `.env`, Node, PHPUnit, or Boost in runtime; Apache worker can write storage and bootstrap/cache |
-| Failed readiness | Passed: removing the compiled index made the container unhealthy and Compose startup fail while `/up` still returned 200 |
-| Restart and reinitialization | Passed: app returned to healthy status; root and `/up` both HTTP 200 after restart |
+[`QuoteBasket`](../backend/app/Application/QuoteBasket.php) merges duplicate rows and constructs a new `Basket` for every call. [`QuoteBasketRequest`](../backend/app/Http/Requests/QuoteBasketRequest.php) handles the HTTP boundary: malformed JSON returns 400, invalid fields or containers return 422, and valid empty baskets return zero amounts. The controller serializes the domain's breakdown without recalculating pricing.
 
-Pure domain tests cover the supplied totals, quantities through six reds, all four delivery boundaries, injection, rounding from snapshot prices, state preservation, and invalid configuration. Scaffold feature tests exercise the root redirect and health route without a database. The original generated always-true unit test was replaced by the meaningful domain suite.
+React owns local quantities and displays authoritative server amounts. A quote belongs to a particular basket and retry attempt. Cancellation and request counters prevent an old success or error from replacing a newer result. Amounts are hidden while the current basket has no matching successful quote.
 
-Local registry access initially stalled in Docker Desktop's credential helper. Image pulls and builds used a temporary Docker CLI configuration with the existing Docker socket, without changing the user's Docker settings. The startup command itself remained `docker compose up --build --wait`; no application setup step or project-specific runtime prerequisite was added. The host credential-helper issue is separate from the repository and may need attention for future builds using the host's default Docker CLI configuration.
+## Tests
 
-AMD64 execution and browser-level UI checks have not been run. The actual shopping screen and screenshot belong to the later stage awaiting candidate authorization. The application is left running at http://localhost:8080 with the Phase 1 placeholder.
-
-## Checkpoint approval
-
-The candidate approved the quantity/snapshot model and **$16.47 per discounted red unit** policy on 2026-10-06. The review checkpoint required by Section 11 of the supplied implementation plan is complete. The API/UI and final verification are now ready for the next candidate review.
+The [pure domain tests](../backend/tests/Unit/Domain/Basket) exercise money, delivery boundaries, all supplied totals, quantities through six reds, alternative rounding policies, constructor injection, and state preservation without booting Laravel. [API feature tests](../backend/tests/Feature/BasketApiTest.php) cover validation, duplicate rows, aggregate limits, alternate configuration, and request isolation without a database. See [verification](verification.md) for the executed checks.

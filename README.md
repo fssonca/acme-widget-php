@@ -4,7 +4,7 @@ A working basket quotation app with a small, ordinary-PHP domain, a Laravel API,
 
 ![Actual application showing two red widgets and a $54.37 total](docs/screenshot.png)
 
-**Start here:** [`Basket.php`](backend/app/Domain/Basket/Basket.php), its [domain types and strategies](backend/app/Domain/Basket), and the [acceptance tests](backend/tests/Unit/Domain/Basket/BasketTest.php). The [model walkthrough](docs/phase-2-review.md) explains all ten types, the two-red/six-red calculations, and the approved rounding policy. [Final verification](docs/verification.md) records checks and limits.
+**Start here:** [`Basket.php`](backend/app/Domain/Basket/Basket.php), its [domain types and strategies](backend/app/Domain/Basket), and the [acceptance tests](backend/tests/Unit/Domain/Basket/BasketTest.php). The [design notes](docs/design-notes.md) explain all ten types, the two-red/six-red calculations, and the per-unit rounding policy. [Verification](docs/verification.md) records checks and limits.
 
 ## Run
 
@@ -144,6 +144,6 @@ The JSON root must be an object and `items` an actual array. `items` must be pre
 
 API errors render as JSON even without an Accept header. Non-JSON form requests reach the same field validation. The browser sends both JSON Content-Type and Accept headers.
 
-## Review and attribution
+## AI assistance
 
-The candidate reviewed and approved Phases 1–2 and the domain/rounding policy. The completed API, UI, and packaging are ready for final candidate review. Implementation used AI assistance; the work is not represented as unaided. No recruiter AI-use policy was supplied, and any applicable policy/disclosure must be settled before submission. Git commits retain the existing identity without optional AI co-author trailers. Work is committed locally; publication and challenge submission require a separate instruction.
+AI assistance was used during implementation and documentation.
