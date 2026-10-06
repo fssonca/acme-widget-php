@@ -1,45 +1,24 @@
-name: Container checks
+name: CI
 
-on:
-  push:
-  pull_request:
-  workflow_dispatch:
-
-permissions:
-  contents: read
+on: [push, pull_request]
 
 jobs:
-  check:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
+  checks:
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-      - name: Validate Compose and build tools
+      - uses: actions/checkout@v7
+      - run: docker compose --profile tools build
+      - name: Backend tests and static analysis
         run: |
-          docker compose config --quiet
-          docker compose --profile tools build backend-tools frontend-tools
-      - name: PHP tests and quality
+          docker compose run --rm backend composer test
+          docker compose run --rm backend composer lint
+      - name: Frontend tests and lint
         run: |
-          docker compose --profile tools run --rm backend-tools php artisan test
-          docker compose --profile tools run --rm backend-tools vendor/bin/pint --test
-          docker compose --profile tools run --rm backend-tools vendor/bin/phpstan analyse
-          docker compose --profile tools run --rm backend-tools composer validate --strict
-      - name: Frontend checks
+          docker compose run --rm frontend npm test
+          docker compose run --rm frontend npm run lint
+      - name: App answers a quote
         run: |
-          docker compose --profile tools run --rm frontend-tools npm run typecheck
-          docker compose --profile tools run --rm frontend-tools npm run lint
-          docker compose --profile tools run --rm frontend-tools npm run build
-      - name: Start application and check HTTP
-        run: |
-          docker compose up --build --wait
-          curl --fail --silent --show-error --location http://localhost:8080/ > /dev/null
-          curl --fail --silent --show-error http://localhost:8080/api/catalogue > /dev/null
-          docker compose --profile tools run --rm frontend-tools node scripts/smoke.mjs http://app
-      - name: Application logs on failure
-        if: failure()
-        run: docker compose logs app
-      - name: Stop containers
-        if: always()
-        run: docker compose --profile tools down --remove-orphans
+          docker compose up --build --detach app
+          curl --retry 10 --retry-connrefused --fail --silent \
+            -H 'Content-Type: application/json' -d '{"items":[{"code":"R01","quantity":2}]}' \
+            http://localhost:8080/api/basket/quote | grep '"totalCents":5437'

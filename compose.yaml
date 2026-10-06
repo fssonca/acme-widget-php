@@ -1,45 +1,27 @@
-name: acme-widget
-
-x-backend-environment: &backend-environment
-  APP_NAME: Acme Widget Co
-  APP_ENV: production
-  APP_DEBUG: "false"
-  APP_URL: http://localhost:${APP_PORT:-8080}
-  APP_KEY: ${APP_KEY:-}
-  SESSION_DRIVER: array
-  CACHE_STORE: array
-  QUEUE_CONNECTION: sync
-  LOG_CHANNEL: stderr
-  LOG_LEVEL: info
-
 services:
   app:
     build:
       context: .
       target: app
-    environment: *backend-environment
     ports:
-      - "127.0.0.1:${APP_PORT:-8080}:80"
-    healthcheck:
-      test: ["CMD", "php", "/usr/local/bin/healthcheck.php"]
-      interval: 5s
-      timeout: 3s
-      start_period: 15s
-      retries: 5
+      - "8080:80"
+    environment:
+      APP_ENV: production
+      LOG_CHANNEL: stderr
+      CACHE_STORE: array
 
-  backend-tools:
+  # Checks only: docker compose run --rm backend composer test
+  backend:
     profiles: [tools]
     build:
       context: .
-      target: backend-tools
-    working_dir: /var/www/html
-    environment: *backend-environment
-    command: ["php", "artisan", "test"]
+      target: backend
+    command: composer test
 
-  frontend-tools:
+  # Checks only: docker compose run --rm frontend npm test
+  frontend:
     profiles: [tools]
     build:
       context: .
-      target: frontend-tools
-    working_dir: /workspace/frontend
-    command: ["npm", "run", "typecheck"]
+      target: frontend
+    command: npm test
