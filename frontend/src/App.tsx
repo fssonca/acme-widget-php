@@ -69,9 +69,11 @@ export default function App() {
                     />
                   ))}
                 </div>
-                <p className="offer-note">
-                  <Icon name="tag" /> {catalogue.data.offerDescription}
-                </p>
+                {catalogue.data.offers.map((offer) => (
+                  <p className="offer-note" key={offer}>
+                    <Icon name="tag" /> {offer}
+                  </p>
+                ))}
               </>
             )}
           </section>

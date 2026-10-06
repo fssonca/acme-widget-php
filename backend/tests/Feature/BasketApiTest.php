@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Domain\Basket\Money;
+use App\Domain\Basket\Offer;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -15,7 +17,29 @@ final class BasketApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('products.0', ['code' => 'R01', 'name' => 'Red Widget', 'unitPriceCents' => 3295])
             ->assertJsonCount(3, 'products')
-            ->assertJsonPath('offerDescription', 'Buy one red widget, get the second half price.');
+            ->assertJsonPath('offers', ['Buy one red widget, get the second half price.']);
+    }
+
+    public function test_a_newly_registered_offer_is_listed_and_applied(): void
+    {
+        $this->app->instance('test.offer', new class implements Offer
+        {
+            public function discountFor(array $lines): Money
+            {
+                return new Money(100);
+            }
+
+            public function description(): string
+            {
+                return '$1 off every order';
+            }
+        });
+        $this->app->tag(['test.offer'], 'basket.offers');
+
+        $this->getJson('/api/catalogue')->assertJsonPath('offers.1', '$1 off every order');
+        $this->postJson('/api/basket/quote', ['items' => [['code' => 'R01', 'quantity' => 2]]])
+            ->assertJsonPath('discountCents', 1748)
+            ->assertJsonPath('totalCents', 5337);
     }
 
     public function test_quotes_a_basket_with_a_full_breakdown(): void

@@ -6,7 +6,7 @@ export interface Product {
 
 export interface Catalogue {
   products: Product[]
-  offerDescription: string
+  offers: string[]
 }
 
 export interface BasketItem {

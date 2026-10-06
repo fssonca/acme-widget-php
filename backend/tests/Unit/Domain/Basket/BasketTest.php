@@ -91,6 +91,11 @@ final class BasketTest extends TestCase
 
                 return new Money(intdiv($subtotal, 10));
             }
+
+            public function description(): string
+            {
+                return '10% off everything';
+            }
         };
         $flatDelivery = new class implements DeliveryPolicy
         {
@@ -113,7 +118,7 @@ final class BasketTest extends TestCase
             new DeliveryBand(new Money(295), below: new Money(9000)),
             new DeliveryBand(new Money(0)),
         );
-        $basket = new Basket($this->catalogue(), $delivery, [new HalfPriceSecondItemOffer('R01')]);
+        $basket = new Basket($this->catalogue(), $delivery, [new HalfPriceSecondItemOffer('R01', 'Half-price reds')]);
 
         foreach ($codes as $code) {
             $basket->add($code);

@@ -6,15 +6,17 @@ namespace App\Http\Controllers;
 
 use App\Domain\Basket\Basket;
 use App\Domain\Basket\BasketLine;
+use App\Domain\Basket\Offer;
 use App\Domain\Basket\Product;
 use App\Domain\Basket\ProductCatalogue;
 use App\Http\Requests\QuoteBasketRequest;
+use Illuminate\Container\Attributes\Tag;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Config;
 
 final class BasketController
 {
-    public function catalogue(ProductCatalogue $catalogue): JsonResponse
+    /** @param iterable<Offer> $offers */
+    public function catalogue(ProductCatalogue $catalogue, #[Tag('basket.offers')] iterable $offers): JsonResponse
     {
         return response()->json([
             'products' => array_map(fn (Product $product) => [
@@ -22,7 +24,7 @@ final class BasketController
                 'name' => $product->name,
                 'unitPriceCents' => $product->unitPrice->cents,
             ], $catalogue->all()),
-            'offerDescription' => Config::string('basket.offer.description'),
+            'offers' => array_map(fn (Offer $offer) => $offer->description(), [...$offers]),
         ]);
     }
 

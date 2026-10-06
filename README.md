@@ -51,7 +51,7 @@ Laravel only connects the model to HTTP:
 
 The React app in [`frontend/src`](frontend/src) stores only product codes and quantities. It asks the API for a fresh quote after every change, and [`useRequest`](frontend/src/hooks/useRequest.ts) cancels outdated requests so a slow response can't overwrite a newer one.
 
-To add a new offer, implement `Offer` and register it in `BasketServiceProvider`. To change prices or delivery bands, edit `config/basket.php`.
+To add a new offer, implement `Offer` and tag it `basket.offers` in `BasketServiceProvider`. Every tagged offer is applied to baskets and its `description()` is listed by the catalogue endpoint. To change prices or delivery bands, edit `config/basket.php`.
 
 ## Assumptions
 

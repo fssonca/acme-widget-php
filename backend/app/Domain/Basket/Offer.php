@@ -9,4 +9,7 @@ interface Offer
 {
     /** @param list<BasketLine> $lines */
     public function discountFor(array $lines): Money;
+
+    // Shown to customers, so the UI never describes an offer that is not applied.
+    public function description(): string;
 }

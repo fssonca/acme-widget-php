@@ -7,7 +7,15 @@ namespace App\Domain\Basket;
 // "Buy one, get the second half price", repeated for every complete pair of the target product.
 final readonly class HalfPriceSecondItemOffer implements Offer
 {
-    public function __construct(private string $productCode) {}
+    public function __construct(
+        private string $productCode,
+        private string $description,
+    ) {}
+
+    public function description(): string
+    {
+        return $this->description;
+    }
 
     public function discountFor(array $lines): Money
     {

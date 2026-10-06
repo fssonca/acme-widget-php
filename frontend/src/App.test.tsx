@@ -7,7 +7,7 @@ const catalogue = {
     { code: 'R01', name: 'Red Widget', unitPriceCents: 3295 },
     { code: 'B01', name: 'Blue Widget', unitPriceCents: 795 },
   ],
-  offerDescription: 'Buy one red widget, get the second half price.',
+  offers: ['Buy one red widget, get the second half price.'],
 }
 
 const twoReds = {
@@ -60,6 +60,14 @@ describe('App', () => {
         body: JSON.stringify({ items: [{ code: 'R01', quantity: 2 }] }),
       }),
     )
+  })
+
+  it('lists every offer the API reports', async () => {
+    render(<App />)
+
+    expect(
+      await screen.findByText('Buy one red widget, get the second half price.'),
+    ).toBeTruthy()
   })
 
   it('removes a product from the basket', async () => {

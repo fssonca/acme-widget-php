@@ -18,7 +18,7 @@ final class HalfPriceSecondItemOfferTest extends TestCase
     {
         $line = new BasketLine(new Product('R01', 'Red Widget', new Money(3295)), $quantity);
 
-        $this->assertSame($expectedDiscount, (new HalfPriceSecondItemOffer('R01'))->discountFor([$line])->cents);
+        $this->assertSame($expectedDiscount, (new HalfPriceSecondItemOffer('R01', 'Half-price reds'))->discountFor([$line])->cents);
     }
 
     /** @return array<string, array{int, int}> */
@@ -37,13 +37,18 @@ final class HalfPriceSecondItemOfferTest extends TestCase
         $line = new BasketLine(new Product('X01', 'Odd Widget', new Money(1001)), 2);
 
         // The half-price unit costs 500 cents (500.5 rounded down), so the saving is 501.
-        $this->assertSame(501, (new HalfPriceSecondItemOffer('X01'))->discountFor([$line])->cents);
+        $this->assertSame(501, (new HalfPriceSecondItemOffer('X01', 'Half-price odd widgets'))->discountFor([$line])->cents);
     }
 
     public function test_ignores_other_products(): void
     {
         $line = new BasketLine(new Product('G01', 'Green Widget', new Money(2495)), 2);
 
-        $this->assertSame(0, (new HalfPriceSecondItemOffer('R01'))->discountFor([$line])->cents);
+        $this->assertSame(0, (new HalfPriceSecondItemOffer('R01', 'Half-price reds'))->discountFor([$line])->cents);
+    }
+
+    public function test_describes_itself_for_customers(): void
+    {
+        $this->assertSame('Half-price reds', (new HalfPriceSecondItemOffer('R01', 'Half-price reds'))->description());
     }
 }
