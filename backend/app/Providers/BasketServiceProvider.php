@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Application\QuoteBasket;
+use App\Domain\Basket\Basket;
+use App\Domain\Basket\DeliveryBand;
 use App\Domain\Basket\DeliveryPolicy;
 use App\Domain\Basket\HalfPriceSecondItemOffer;
 use App\Domain\Basket\Money;
@@ -15,6 +16,7 @@ use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
 
+// Builds the framework-free domain objects from config/basket.php.
 final class BasketServiceProvider extends ServiceProvider
 {
     public function register(): void
@@ -23,25 +25,30 @@ final class BasketServiceProvider extends ServiceProvider
             /** @var list<array{code: string, name: string, unitPriceCents: int}> $products */
             $products = Config::array('basket.products');
 
-            return new ProductCatalogue(array_map(
-                static fn (array $product): Product => new Product(
-                    $product['code'], $product['name'], new Money($product['unitPriceCents']),
-                ),
+            return new ProductCatalogue(...array_map(
+                fn (array $product) => new Product($product['code'], $product['name'], new Money($product['unitPriceCents'])),
                 $products,
             ));
         });
 
         $this->app->singleton(DeliveryPolicy::class, function (): DeliveryPolicy {
-            /** @var list<array{upperBoundCents: int|null, chargeCents: int}> $bands */
+            /** @var list<array{belowCents: int|null, chargeCents: int}> $bands */
             $bands = Config::array('basket.delivery');
 
-            return new ThresholdDeliveryPolicy($bands);
+            return new ThresholdDeliveryPolicy(...array_map(
+                fn (array $band) => new DeliveryBand(
+                    new Money($band['chargeCents']),
+                    $band['belowCents'] === null ? null : new Money($band['belowCents']),
+                ),
+                $bands,
+            ));
         });
 
-        $this->app->singleton(QuoteBasket::class, static fn (Application $app): QuoteBasket => new QuoteBasket(
+        // bind(), not singleton(): every request gets a new, empty basket. New offers are registered here.
+        $this->app->bind(Basket::class, fn (Application $app) => new Basket(
             $app->make(ProductCatalogue::class),
             $app->make(DeliveryPolicy::class),
-            [new HalfPriceSecondItemOffer(Config::string('basket.offer.targetCode'))],
+            [new HalfPriceSecondItemOffer(Config::string('basket.offer.productCode'))],
         ));
     }
 }

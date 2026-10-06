@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Application\QuoteBasket;
+use App\Domain\Basket\Basket;
 use App\Domain\Basket\BasketLine;
 use App\Domain\Basket\Product;
 use App\Domain\Basket\ProductCatalogue;
@@ -12,13 +12,12 @@ use App\Http\Requests\QuoteBasketRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Config;
 
-final class BasketController extends Controller
+final class BasketController
 {
     public function catalogue(ProductCatalogue $catalogue): JsonResponse
     {
         return response()->json([
-            'currency' => 'USD',
-            'products' => array_map(static fn (Product $product): array => [
+            'products' => array_map(fn (Product $product) => [
                 'code' => $product->code,
                 'name' => $product->name,
                 'unitPriceCents' => $product->unitPrice->cents,
@@ -27,22 +26,26 @@ final class BasketController extends Controller
         ]);
     }
 
-    public function quote(QuoteBasketRequest $request, QuoteBasket $quoteBasket): JsonResponse
+    // The basket is the server-side source of truth; the client only sends codes and quantities.
+    public function quote(QuoteBasketRequest $request, Basket $basket): JsonResponse
     {
-        $totals = $quoteBasket->quote($request->items());
+        foreach ($request->quantities() as $code => $quantity) {
+            // The challenge's Basket::add() takes one unit per call; validation caps quantities at 99.
+            for ($unit = 0; $unit < $quantity; $unit++) {
+                $basket->add((string) $code);
+            }
+        }
+
+        $totals = $basket->breakdown();
 
         return response()->json([
-            'currency' => 'USD',
-            'items' => array_map(static fn (BasketLine $line): array => [
+            'items' => array_map(fn (BasketLine $line) => [
                 'code' => $line->product->code,
-                'name' => $line->product->name,
                 'quantity' => $line->quantity,
-                'unitPriceCents' => $line->product->unitPrice->cents,
                 'lineSubtotalCents' => $line->subtotal()->cents,
             ], $totals->lines),
             'subtotalCents' => $totals->subtotal->cents,
             'discountCents' => $totals->discount->cents,
-            'discountedSubtotalCents' => $totals->discountedSubtotal->cents,
             'deliveryCents' => $totals->delivery->cents,
             'totalCents' => $totals->total->cents,
         ]);

@@ -4,30 +4,24 @@ declare(strict_types=1);
 
 namespace App\Domain\Basket;
 
-use InvalidArgumentException;
-
+// "Buy one, get the second half price", repeated for every complete pair of the target product.
 final readonly class HalfPriceSecondItemOffer implements Offer
 {
-    public function __construct(private string $targetCode)
-    {
-        if (trim($targetCode) === '') {
-            throw new InvalidArgumentException('Offer target code must not be blank.');
-        }
-    }
+    public function __construct(private string $productCode) {}
 
     public function discountFor(array $lines): Money
     {
         $discount = new Money(0);
 
         foreach ($lines as $line) {
-            if ($line->product->code !== $this->targetCode) {
+            if ($line->product->code !== $this->productCode) {
                 continue;
             }
 
-            $pairCount = intdiv($line->quantity, 2);
-            $halfPriceCents = intdiv($line->product->unitPrice->cents, 2);
-            $discountPerUnit = new Money($line->product->unitPrice->cents - $halfPriceCents);
-            $discount = $discount->plus($discountPerUnit->times($pairCount));
+            // Each half-price unit is rounded down to whole cents: $32.95 -> $16.47, saving $16.48 per pair.
+            $price = $line->product->unitPrice->cents;
+            $savingPerPair = new Money($price - intdiv($price, 2));
+            $discount = $discount->plus($savingPerPair->times(intdiv($line->quantity, 2)));
         }
 
         return $discount;

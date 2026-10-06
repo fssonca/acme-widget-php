@@ -11,14 +11,13 @@ final readonly class ProductCatalogue
     /** @var array<string, Product> */
     private array $products;
 
-    /** @param list<Product> $products */
-    public function __construct(array $products)
+    public function __construct(Product ...$products)
     {
         $indexed = [];
 
         foreach ($products as $product) {
             if (isset($indexed[$product->code])) {
-                throw new InvalidArgumentException('Duplicate product code: '.$product->code.'.');
+                throw new InvalidArgumentException("Duplicate product code: {$product->code}.");
             }
 
             $indexed[$product->code] = $product;
@@ -29,18 +28,12 @@ final readonly class ProductCatalogue
 
     public function get(string $code): Product
     {
-        return $this->products[$code] ?? throw new InvalidArgumentException('Unknown product code: '.$code.'.');
+        return $this->products[$code] ?? throw new InvalidArgumentException("Unknown product code: {$code}.");
     }
 
     /** @return list<Product> */
     public function all(): array
     {
         return array_values($this->products);
-    }
-
-    /** @return list<string> */
-    public function codes(): array
-    {
-        return array_map(static fn (Product $product): string => $product->code, $this->all());
     }
 }

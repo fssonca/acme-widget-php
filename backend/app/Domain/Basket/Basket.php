@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace App\Domain\Basket;
 
-use InvalidArgumentException;
-
 final class Basket
 {
-    /** @var array<string, int> */
+    /** @var array<string, int> Quantity per product code; prices are read only when totals are calculated. */
     private array $quantities = [];
 
     /** @param list<Offer> $offers */
@@ -20,10 +18,8 @@ final class Basket
 
     public function add(string $productCode): void
     {
-        $this->catalogue->get($productCode);
-        $quantity = $this->quantities[$productCode] ?? 0;
-
-        $this->quantities[$productCode] = $quantity + 1;
+        $this->catalogue->get($productCode); // Rejects unknown codes before changing state.
+        $this->quantities[$productCode] = ($this->quantities[$productCode] ?? 0) + 1;
     }
 
     public function total(): string
@@ -33,34 +29,21 @@ final class Basket
 
     public function breakdown(): BasketTotals
     {
+        // An empty basket costs nothing, so the minimum delivery charge does not apply.
         if ($this->quantities === []) {
             return new BasketTotals([], new Money(0), new Money(0), new Money(0));
         }
 
-        $quantities = $this->quantities;
-        ksort($quantities, SORT_STRING);
-
         $lines = [];
-        $subtotal = new Money(0);
-
-        foreach ($quantities as $code => $quantity) {
-            $line = new BasketLine($this->catalogue->get((string) $code), $quantity);
-            $lines[] = $line;
-            $subtotal = $subtotal->plus($line->subtotal());
+        foreach ($this->quantities as $code => $quantity) {
+            $lines[] = new BasketLine($this->catalogue->get((string) $code), $quantity);
         }
 
-        $discount = new Money(0);
+        $subtotal = array_reduce($lines, fn (Money $sum, BasketLine $line) => $sum->plus($line->subtotal()), new Money(0));
+        $discount = array_reduce($this->offers, fn (Money $sum, Offer $offer) => $sum->plus($offer->discountFor($lines)), new Money(0));
 
-        foreach ($this->offers as $offer) {
-            $discount = $discount->plus($offer->discountFor($lines));
-        }
-
-        if ($discount->cents > $subtotal->cents) {
-            throw new InvalidArgumentException('Offer discounts cannot exceed the merchandise subtotal.');
-        }
-
-        $discountedSubtotal = $subtotal->minus($discount);
-        $delivery = $this->deliveryPolicy->chargeFor($discountedSubtotal);
+        // Delivery is charged on the discounted amount: two reds are $49.42 after the offer, so delivery is $4.95.
+        $delivery = $this->deliveryPolicy->chargeFor($subtotal->minus($discount));
 
         return new BasketTotals($lines, $subtotal, $discount, $delivery);
     }

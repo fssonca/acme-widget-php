@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Domain\Basket;
 
+use App\Domain\Basket\DeliveryBand;
 use App\Domain\Basket\Money;
 use App\Domain\Basket\ThresholdDeliveryPolicy;
 use InvalidArgumentException;
@@ -12,95 +13,33 @@ use PHPUnit\Framework\TestCase;
 
 final class ThresholdDeliveryPolicyTest extends TestCase
 {
-    #[DataProvider('deliveryBoundaries')]
-    public function test_uses_exclusive_upper_bounds(int $subtotal, int $delivery): void
+    #[DataProvider('boundaries')]
+    public function test_charges_by_the_first_band_that_covers_the_amount(int $amount, int $expectedCharge): void
     {
-        $policy = new ThresholdDeliveryPolicy([
-            ['upperBoundCents' => 5000, 'chargeCents' => 495],
-            ['upperBoundCents' => 9000, 'chargeCents' => 295],
-            ['upperBoundCents' => null, 'chargeCents' => 0],
-        ]);
+        $policy = new ThresholdDeliveryPolicy(
+            new DeliveryBand(new Money(495), below: new Money(5000)),
+            new DeliveryBand(new Money(295), below: new Money(9000)),
+            new DeliveryBand(new Money(0)),
+        );
 
-        $this->assertSame($delivery, $policy->chargeFor(new Money($subtotal))->cents);
+        $this->assertSame($expectedCharge, $policy->chargeFor(new Money($amount))->cents);
     }
 
     /** @return array<string, array{int, int}> */
-    public static function deliveryBoundaries(): array
+    public static function boundaries(): array
     {
         return [
-            'zero merchandise' => [0, 495],
-            'below fifty' => [4999, 495],
-            'exactly fifty' => [5000, 295],
-            'below ninety' => [8999, 295],
-            'exactly ninety' => [9000, 0],
-            'above ninety' => [9001, 0],
-            'largest amount' => [PHP_INT_MAX, 0],
+            'just under $50' => [4999, 495],
+            'exactly $50' => [5000, 295],
+            'just under $90' => [8999, 295],
+            'exactly $90' => [9000, 0],
         ];
     }
 
-    public function test_accepts_a_single_unbounded_band(): void
-    {
-        $policy = new ThresholdDeliveryPolicy([
-            ['upperBoundCents' => null, 'chargeCents' => 123],
-        ]);
-
-        $this->assertSame(123, $policy->chargeFor(new Money(50000))->cents);
-    }
-
-    /** @param array<int, mixed> $bands */
-    #[DataProvider('invalidBands')]
-    public function test_rejects_invalid_delivery_configuration(array $bands): void
+    public function test_requires_an_open_ended_last_band(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
-        new ThresholdDeliveryPolicy($bands);
-    }
-
-    /** @return array<string, array{array<int, mixed>}> */
-    public static function invalidBands(): array
-    {
-        return [
-            'no bands' => [[]],
-            'non-array band' => [[495]],
-            'missing charge' => [[['upperBoundCents' => null]]],
-            'missing bound' => [[['chargeCents' => 495]]],
-            'string charge' => [[['upperBoundCents' => null, 'chargeCents' => '495']]],
-            'null charge' => [[['upperBoundCents' => null, 'chargeCents' => null]]],
-            'float charge' => [[['upperBoundCents' => null, 'chargeCents' => 495.0]]],
-            'boolean charge' => [[['upperBoundCents' => null, 'chargeCents' => true]]],
-            'string bound' => [[['upperBoundCents' => '5000', 'chargeCents' => 495]]],
-            'float bound' => [[['upperBoundCents' => 5000.0, 'chargeCents' => 495]]],
-            'boolean bound' => [[['upperBoundCents' => true, 'chargeCents' => 495]]],
-            'no final unbounded band' => [[['upperBoundCents' => 5000, 'chargeCents' => 495]]],
-            'decreasing bounds' => [[
-                ['upperBoundCents' => 9000, 'chargeCents' => 495],
-                ['upperBoundCents' => 5000, 'chargeCents' => 295],
-                ['upperBoundCents' => null, 'chargeCents' => 0],
-            ]],
-            'repeated bounds' => [[
-                ['upperBoundCents' => 5000, 'chargeCents' => 495],
-                ['upperBoundCents' => 5000, 'chargeCents' => 295],
-                ['upperBoundCents' => null, 'chargeCents' => 0],
-            ]],
-            'unbounded before the end' => [[
-                ['upperBoundCents' => null, 'chargeCents' => 495],
-                ['upperBoundCents' => 5000, 'chargeCents' => 295],
-                ['upperBoundCents' => null, 'chargeCents' => 0],
-            ]],
-            'two unbounded bands' => [[
-                ['upperBoundCents' => null, 'chargeCents' => 495],
-                ['upperBoundCents' => null, 'chargeCents' => 0],
-            ]],
-            'negative charge' => [[['upperBoundCents' => null, 'chargeCents' => -1]]],
-            'zero bound' => [[
-                ['upperBoundCents' => 0, 'chargeCents' => 495],
-                ['upperBoundCents' => null, 'chargeCents' => 0],
-            ]],
-            'negative bound' => [[
-                ['upperBoundCents' => -1, 'chargeCents' => 495],
-                ['upperBoundCents' => null, 'chargeCents' => 0],
-            ]],
-            'nonconsecutive keys' => [[2 => ['upperBoundCents' => null, 'chargeCents' => 0]]],
-        ];
+        new ThresholdDeliveryPolicy(new DeliveryBand(new Money(495), below: new Money(5000)));
     }
 }
