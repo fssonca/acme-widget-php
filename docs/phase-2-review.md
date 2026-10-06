@@ -1,6 +1,6 @@
 # Phase 2 model review
 
-The containerized scaffold and basket domain are ready for review. The implementation plan explicitly requires candidate approval here before Phases 3–5. The quotation API, functional shopping screen, screenshot, and CI are still pending.
+The candidate reviewed and approved Phases 1–2 and the model/rounding policy on 2026-10-06. This document preserves the original checkpoint and its verification results; statements about pending implementation below describe that checkpoint. Phases 3–5 are now implemented. See [final verification](verification.md) for current results and review cleanups.
 
 ## Start with the domain
 
@@ -123,6 +123,6 @@ Local registry access initially stalled in Docker Desktop's credential helper. I
 
 AMD64 execution and browser-level UI checks have not been run. The actual shopping screen and screenshot belong to the later stage awaiting candidate authorization. The application is left running at http://localhost:8080 with the Phase 1 placeholder.
 
-## Requested review
+## Checkpoint approval
 
-Confirm the quantity/snapshot model and **$16.47 per discounted red unit** policy, then explicitly instruct the agent to continue with Phases 3–5. This checkpoint is required by Section 11 of the supplied implementation plan.
+The candidate approved the quantity/snapshot model and **$16.47 per discounted red unit** policy on 2026-10-06. The review checkpoint required by Section 11 of the supplied implementation plan is complete. The API/UI and final verification are now ready for the next candidate review.
